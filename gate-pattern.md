@@ -71,10 +71,24 @@ If 0 CRITICAL findings: proceed to Step 6 immediately. Additionally, /simplify (
 
 ## Step 6: /SIMPLIFY (runs on post-fix code)
 
-Launch 3 parallel review agents (Reuse, Quality, Efficiency):
+**Adaptive dispatch — scale agents to phase size:**
+
+| Phase file count | Agents to launch | Assignment |
+|-----------------|-----------------|------------|
+| ≤ 2 files | 1 agent | All 3 checks combined into one prompt |
+| 3–6 files | 2 agents | Agent 1: Reuse + Quality · Agent 2: Efficiency (give different file sets) |
+| 7+ files | 3 agents | Full parallel split (see below) |
+
+**Full 3-agent split (large phases only):**
+
+Give each agent a DIFFERENT subset of the changed files — no overlap.
+Split the file list roughly by thirds (e.g. 9 files → 3 per agent).
+
 1. **Code Reuse** — duplicated utilities, existing helpers not used
 2. **Code Quality** — redundant state, copy-paste, unnecessary comments
 3. **Efficiency** — hot-path bloat, lock contention, unnecessary work
+
+**Git diff tip:** Pass `git diff --unified=1 HEAD~1` rather than full files when file contents are large — this shows only changed context and cuts token cost ~60–80%.
 
 These review the code AFTER Opus findings are fixed — ensuring they don't waste time on code that's about to change.
 

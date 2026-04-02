@@ -51,29 +51,70 @@ At the end: summary count of PASS/FAIL/WARN.
 
 ## Explorer Agent WITH Codebase Map (model: "sonnet")
 
-Use this template when `codebase-map.json` exists from a previous audit:
+Use this template when `codebase-map.json` exists from a previous audit.
+
+**FILTER before pasting map context** — only include entries where ANY of these is true:
+1. `dimensions_matched` contains this dimension's ID (e.g. `"1.3"`)
+2. File appears in `git diff --name-only <last_scan_commit>..HEAD`
+3. `risk_score >= 10`
+
+Do NOT paste the entire map — this wastes 10-16K tokens per agent in a mega-parallel run.
 
 ```
 You are exploring the codebase at [PATH] for [DIMENSION_NAME].
 
-CODEBASE MAP CONTEXT:
-[PASTE relevant entries from codebase-map.json for this dimension]
+CODEBASE MAP CONTEXT (filtered to this dimension only):
+[PASTE only entries matching the filter above — omit all others]
 
-Hot-spot files for this dimension:
-[LIST files with risk_score >= 10 that match this dimension]
+Hot-spot files for this dimension (risk_score >= 10):
+[LIST file paths only — no full JSON entries needed]
 
 Changed files since last scan:
-[LIST from git diff --name-only <last_commit>..HEAD]
+[LIST from git diff --name-only <last_scan_commit>..HEAD]
 
 Instructions:
 1. CHANGED FILES: Full scan with all search commands
 2. HOT-SPOT FILES: Quick re-check — verify previous findings are still fixed, look for new issues
-3. CLEAN FILES: Skip unless they appear in git diff
+3. CLEAN FILES (not in map, not in diff): Skip unless a search command turns up a hit
 4. NEW FILES (not in map): Full scan
 
 Report findings as PASS/FAIL/WARN with file:line.
 Mark regressions (previously fixed, now broken again) as REGRESSION.
 ```
+
+## Sub-Agent Dispatch for Large Dimensions (model: "sonnet")
+
+Use when a dimension has >15 checks (e.g. Dim 2.10 — Data Store Safety with 40 checks).
+Split by technology/category — each sub-agent gets ONE slice. Do NOT send all 40 checks to every agent.
+
+**Split pattern:**
+```
+Dim 2.10 (40 checks) → 6 sub-agents:
+  Agent 1: SQLite checks only   (grep patterns for sqlite3)
+  Agent 2: PostgreSQL checks    (grep patterns for psycopg2, asyncpg)
+  Agent 3: DuckDB checks        (grep patterns for duckdb)
+  Agent 4: Redis checks         (grep patterns for redis, aioredis)
+  Agent 5: Parquet/Arrow checks (grep patterns for pyarrow, fastparquet)
+  Agent 6: MinIO/S3 checks      (grep patterns for minio, boto3)
+```
+
+Sub-agent prompt template:
+```
+You are exploring the codebase at [PATH] for [DIMENSION_NAME] — [TECHNOLOGY] only.
+
+Checks for this technology:
+[PASTE ONLY THE CHECKS FOR THIS TECHNOLOGY — not the full dimension]
+
+Search commands:
+[PASTE ONLY THE GREP COMMANDS FOR THIS TECHNOLOGY]
+
+Report findings as PASS/FAIL/WARN with file:line. Summary count at end.
+```
+
+This keeps each sub-agent prompt under ~1K tokens vs 3-5K for the full dimension.
+Sub-agents for different technologies have zero file overlap — always safe to run in parallel.
+
+---
 
 ## Verification Agent WITH Codebase Map (model: "sonnet")
 

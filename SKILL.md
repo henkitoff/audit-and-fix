@@ -94,15 +94,21 @@ Produce a single prioritized report (`report-templates.md`): P0 (capital/data, f
 
 Before fixing, verify the top findings are REAL:
 
-1. Launch 1-2 Sonnet verification agents on the P0+P1 findings from consolidation
-2. Each agent READS the actual code (not just grep output) and confirms:
+1. **Scale to finding count:**
+   - ≤ 8 P0+P1 findings → 1 agent handles all
+   - 9–20 findings → 2 agents, split by dimension category (see below)
+   - 20+ findings → 3 agents, split by category
+2. **Category split for 2 agents:**
+   - Agent 1: Dims 1.x (Code) + 2.x (System) — implementation bugs
+   - Agent 2: Dims 3.x (Domain) + 4.x (Architecture) + 5.x (Platform) + 6.x (Security) — higher-context findings
+3. Each agent READS the actual code (not just grep output) and confirms:
    - **CONFIRMED**: Bug exists, reproducer possible
    - **FALSE POSITIVE**: Not a bug (add to `false-positives.json`)
    - **NEEDS CONTEXT**: Can't determine without domain knowledge (escalate to user)
-3. Only CONFIRMED findings proceed to Fix Phases
-4. FALSE POSITIVES are removed from the roadmap immediately
+4. Only CONFIRMED findings proceed to Fix Phases
+5. FALSE POSITIVES are removed from the roadmap immediately
 
-**Why:** Exploration uses grep — fast but imprecise. Verification reads code — slower but catches false positives. Without this step, ~20-30% of fix agent time is wasted on non-bugs.
+**Why:** Exploration uses grep — fast but imprecise. Verification reads code — slower but catches false positives. Without this step, ~20-30% of fix agent time is wasted on non-bugs. Category-splitting prevents both agents reading the same large files.
 
 ### Fix Phases (A, B, C, D)
 
