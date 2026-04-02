@@ -8,12 +8,13 @@ A comprehensive, self-improving codebase audit skill for Claude Code (Superpower
 
 - **7 Exploration Rounds:** Code-Level, System-Level, Domain-Specific (ML/Trading), Architecture, Platform, Security, Token Efficiency
 - **75 Dimensions** with concrete grep/find search commands
-- **Parallel Fix Phases** with Opus reviews and /simplify after each phase
+- **Parallel Fix Phases** with Opus reviews and adaptive /simplify after each phase
 - **Self-Improving:** Learns from each audit via persistent memory (JSON in Git)
 - **8 Presets:** quick, full, security, security-deep, ml, perf, platform, token
 - **Cross-Machine:** Audit memory syncs via Git across Mac/Windows/Linux
 - **Model Routing:** Sonnet for 80% of agents (speed), Opus only for reviews (quality)
 - **5 Parallelization Strategies:** Cut audit time from ~6-8h to ~3h
+- **Token-Efficient by Default:** Filtered codebase-map injection (saves ~10-16K tokens/run), adaptive /simplify dispatch, sub-agent templates for large dimensions, verification category split
 
 ## Installation
 
@@ -104,6 +105,20 @@ Tested on a production Python system (120K LOC):
 - 12 fix agents across 4 phases, 3 Opus reviews
 - All fixes merged, 119+ tests green
 - **Health Score: 47/100 -> 91/100 in ~8 hours**
+
+## What's New
+
+**v4.3** — Token Waste Fixes
+- `agent-prompts.md`: Codebase-map injection now filtered per agent (dimension match / git diff / risk score) — saves ~10-16K tokens per mega-parallel run
+- `agent-prompts.md`: Sub-agent dispatch template for large dimensions (>15 checks) — split by technology, each agent gets ONE slice
+- `gate-pattern.md`: Adaptive /simplify — 1 agent for small phases (≤2 files), 2 for medium, 3 for large; each agent gets a different file slice
+- `SKILL.md`: Verification agents split by dimension category (Code+System vs Domain+Arch+Platform+Security)
+
+**v4.2** — Token Efficiency Round expanded to 12 dimensions
+- New: Dim 7.11 (Prompt Compression & Tokenization), Dim 7.12 (Streaming vs. Blocking)
+- Improved: Dims 7.2, 7.3, 7.6, 7.7, 7.10 with concrete budgets and Batch API guidance
+
+**v4.1** — Initial public release (74 dimensions)
 
 ## Requirements
 
