@@ -99,12 +99,14 @@ audit-and-fix/
 
 ## Real-World Results
 
-Tested on a production Python system (120K LOC):
-- 14 exploration agents found **87 bugs + 5 cascading chains + 8 design flaws**
-- 22 CRITICAL findings (NaN in financial calculations, stale model cache, no circuit-breaker)
-- 12 fix agents across 4 phases, 3 Opus reviews
-- All fixes merged, 119+ tests green
-- **Health Score: 47/100 -> 91/100 in ~8 hours**
+Tested on a large production Python system:
+
+- Exploration phase: 14 agents surfaced **80+ bugs, cascading failure chains, and architectural flaws**
+- 20+ CRITICAL findings including silent data corruption, stale cache poisoning, and missing circuit-breakers
+- Fix phase: parallel agents across multiple rounds with Opus reviews after each
+- God-modules (>1500 LOC) dissolved into focused sub-modules (<600 LOC each), cyclic dependencies broken, duplicate code paths unified
+- All fixes merged, **250+ tests green**, 0 regressions
+- **Health Score: 47/100 → 91/100**
 
 ## What's New
 
