@@ -158,15 +158,15 @@ grep -rn "sha256\|hashlib\|verify.*model\|checksum" python/ --include="*.py" | h
 # Prediction endpoint exposure (model theft)
 grep -rn "predict\|inference\|score" python/api/ --include="*.py" | head -10
 # Feature validation before inference
-grep -rn "validate.*feature\|validate.*input\|sanitize" python/strategies/ --include="*.py" | head -10
+grep -rn "validate.*feature\|validate.*input\|sanitize" python/ src/ --include="*.py" 2>/dev/null | head -10
 ```
 **Classify:** CRITICAL if models loaded without any integrity check AND model files can be user-supplied. HIGH if prediction API exposed without rate limiting. MEDIUM if feature validation exists but is incomplete.
 
 ### Dimension 6.9: Audit Logging & Compliance
-**Search for:** Missing trade audit trail, incomplete signal logging, no failed-auth logging.
+**Search for:** Missing action audit trail, incomplete event logging, no failed-auth logging.
 ```bash
-# Trade/signal audit trail
-grep -rn "audit\|trade.*log\|signal.*log\|order.*log" python/ --include="*.py" | head -10
+# Action/event audit trail
+grep -rn "audit\|event.*log\|action.*log\|request.*log\|operation.*log" python/ --include="*.py" | head -10
 # API request logging
 grep -rn "AccessLogMiddleware\|access.*log\|request.*log" python/api/ --include="*.py" | head -5
 # Failed operation logging
@@ -174,7 +174,7 @@ grep -rn "failed.*log\|error.*log\|unauthorized\|forbidden" python/ --include="*
 # Data retention policy
 grep -rn "retention\|purge\|archive\|cleanup.*old" python/ --include="*.py" | head -5
 ```
-**Classify:** CRITICAL if no audit trail for trade signals/execution (regulatory requirement). HIGH if no API request logging. MEDIUM if logging exists but no retention policy.
+**Classify:** CRITICAL if there is no audit trail for critical state changes or externally visible actions. HIGH if there is no API request logging. MEDIUM if logging exists but no retention policy.
 
 ### Dimension 6.10: Data Protection
 **Search for:** Unencrypted data at rest, missing TLS in transit, insecure backup procedures.

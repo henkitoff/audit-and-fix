@@ -5,7 +5,7 @@
 ```bash
 grep -rPl '\r\n' python/ --include="*.py" 2>/dev/null | head -20
 grep -rPl '\r$' scripts/ --include="*.sh" | head -10
-cat -A python/strategies/ai/core.py | grep '\^M' | head -5
+git ls-files "*.py" | head -1 | xargs -I{} cat -A "{}" | grep '\^M' | head -5
 ```
 **Classify:** HIGH if .sh scripts have CRLF (won't execute on Linux). MEDIUM if .py files have mixed endings. LOW if consistent CRLF (just needs .gitattributes).
 
@@ -87,13 +87,13 @@ grep -rn "datetime.now()" python/ --include="*.py" | head -15
 **Classify:** HIGH if utcnow() used (deprecated in Python 3.12). HIGH if datetime.now() without timezone in time-critical code. MEDIUM if .replace(tzinfo=) used instead of .astimezone().
 
 ### Dimension 5.10: Signal/Shutdown Handling
-**Search for:** Missing SIGTERM handlers, atexit limitations, open-trade protection on crash.
+**Search for:** Missing SIGTERM handlers, atexit limitations, protection for in-flight work or external side effects on crash.
 ```bash
 grep -rn "signal\.signal\|signal\.SIGTERM\|signal\.SIGINT" python/ --include="*.py" | head -10
 grep -rn "atexit\.register" python/ --include="*.py" | head -10
 grep -rn "def.*shutdown\|def.*cleanup\|def.*graceful" python/ --include="*.py" | head -10
 ```
-**Classify:** CRITICAL if no shutdown handler in trading process (open positions at risk). HIGH if atexit used for critical cleanup (doesn't run on SIGKILL). MEDIUM if shutdown exists but doesn't close open trades.
+**Classify:** CRITICAL if no shutdown handler exists in a process with in-flight work or external side effects. HIGH if atexit is used for critical cleanup (doesn't run on SIGKILL). MEDIUM if shutdown exists but does not safely flush or close in-flight work.
 
 ### Dimension 5.11: Closure/Generator Bugs
 **Search for:** Late-binding closures in loops, exhausted generators reused, lru_cache on methods.

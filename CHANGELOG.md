@@ -1,6 +1,20 @@
 # Changelog
 
-## [4.0] — 2025
+## [4.4] - 2026
+
+### Added
+- Runtime-aware host routing for Claude Code, Claude in VS Code, Codex, and Codex in VS Code
+- `runtime-routing.md` with native tool/model mapping for Claude vs Codex
+- `agents/openai.yaml` for Codex/OpenAI skill discovery
+- `scripts/install_skill.sh` and `scripts/install_skill.ps1` for cross-host installation
+
+### Changed
+- `SKILL.md`, `README.md`, `agent-prompts.md`, and `gate-pattern.md` now route to the host-native path instead of assuming Claude-only commands
+- Deep-review language is provider-neutral; Claude keeps Opus, Codex stays OpenAI/Codex-only
+- Round 7 token-efficiency guidance now audits Claude and OpenAI/Codex model routing patterns
+- Cleanup flow is described as a host-native pass instead of a Claude-only `/simplify` requirement
+
+## [4.0] - 2025
 
 ### Added
 - Codebase Map: per-file dimension memory with risk scores and hot-spots
@@ -28,20 +42,20 @@
 - Token savings: 79% reduction on incremental audits via codebase map
 
 ### Changed
-- Dimensions renumbered: Round 5 (was 6.x/7.x/8.x → 5.x), Round 6 (was 9.x → 6.x), Round 7 (was 10.x → 7.x)
-- Gate order corrected: Opus MUST complete before /simplify (unless 0 CRITICAL)
+- Dimensions renumbered: Round 5 (was 6.x/7.x/8.x -> 5.x), Round 6 (was 9.x -> 6.x), Round 7 (was 10.x -> 7.x)
+- Gate order corrected: deep review MUST complete before cleanup (unless 0 CRITICAL)
 - Tuning skip-candidates are user-confirmed recommendations (no auto-skip)
 - Mega-parallel dispatch is DEFAULT exploration mode
-- Model routing: Sonnet for 80% of agents, Opus only for reviews
+- Model routing: fast models for exploration/fix, deeper review model for gates
 
-## [3.1] — 2025
+## [3.1] - 2025
 
 ### Added
 - Enriched security from 10 bug-bounty repos (350+ cases analyzed)
 - Dim 6.11: Client-Side & Web Security (XSS, redirects, clickjacking, debug endpoints)
 - IDOR, CSRF, JWT, SSRF, XXE, SSTI, Mass Assignment sub-checks in existing dims
 
-## [3.0] — 2025
+## [3.0] - 2025
 
 ### Added
 - Round 7: Token & API Cost Efficiency (10 dimensions)
@@ -50,13 +64,13 @@
 - 5 parallelization strategies
 - Agent prompt templates, auto-detection, custom dimensions
 
-## [2.0] — 2025
+## [2.0] - 2025
 
 ### Added
 - Round 5: Environment & Platform (12 dimensions)
 - 8 presets, adaptive depth, diff-based scope, incremental audit, health score
 
-## [1.0] — 2025
+## [1.0] - 2025
 
 ### Added
 - Initial release: 30 dimensions across 4 rounds

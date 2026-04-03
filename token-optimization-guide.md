@@ -1,121 +1,125 @@
 # Token Optimization Guide
 
-How the audit-and-fix skill itself minimizes token consumption.
+How the audit-and-fix skill minimizes token consumption without hard-coding itself to one provider.
 
 ## For Orchestrators: Reducing Audit Token Cost
 
-### 1. Model Selection per Agent Role
-| Agent Role | Recommended Model | Why |
-|-----------|-------------------|-----|
-| Explorer (grep + classify) | **Sonnet** | Good code understanding, fast, loose rate limits |
-| Fix Agent (read + edit + test) | **Sonnet** | Code edits, no architecture judgment needed |
-| Opus Review | **Opus** | Deep architectural reasoning required |
-| /simplify Agents | **Sonnet** | Pattern matching with code context |
-| Learning Agents | **Sonnet** | Data comparison, structured output |
+### 1. Provider-Native Model Selection
 
-**Speed impact:** Sonnet has ~3x looser rate limits than Opus. With 20+ parallel agents, Opus throttles — Sonnet doesn't. Result: ~2x faster audit.
+| Agent Role | Claude Path | Codex Path | Why |
+|-----------|-------------|------------|-----|
+| Explorer | Sonnet | inherited Codex model or another available fast code-capable model | Fast, strong code understanding |
+| Fix Agent | Sonnet | inherited Codex model by default; optional code-specialized worker model if the host exposes model selection | Editing quality matters |
+| Deep Review | Opus | strongest available OpenAI/Codex reviewer model, or the inherited model if overrides are unavailable | Deep cross-file reasoning |
+| Cleanup Agent | Sonnet | inherited Codex model or another available fast code-capable model | Focused review, bounded output |
+| Learning Agent | Sonnet | inherited Codex model or another available fast code-capable model | Structured analysis |
 
-**Why Sonnet over Haiku?** Haiku misses subtle code bugs (NaN propagation, thread races). Sonnet catches them reliably. The quality difference matters more than the speed difference for code auditing.
+**Rule:** In Codex, stay OpenAI/Codex-only. If explicit model overrides are unavailable, keep the inherited model and route by task type instead. Default to single-agent execution; use delegated workers only when they are available, policy-allowed, and explicitly requested by the user.
 
-**How to set:** Use the `model` parameter when dispatching Agent tool:
-```
-Agent(description="...", prompt="...", subagent_type="Explore", model="sonnet")
-```
+### 2. One Dimension Per Agent
 
-### 2. One Dimension Per Agent (Never Load All)
-WRONG: Give agent the full exploration-dimensions.md (10K tokens)
-RIGHT: Give agent only its specific round file + dimension section (~200 tokens)
+Wrong: give an agent the full exploration index.
 
-**How:** Extract the specific dimension section and paste it into the agent prompt. Don't reference the file — embed the content directly.
+Right: give the agent only:
+- its round file section
+- its search commands
+- its classification criteria
 
-### 3. Structured Output (JSON, Not Prose)
-Add to every Explorer agent prompt:
-```
-Output ONLY this JSON format, no explanation:
+This keeps prompts short and reduces false positives.
+
+### 3. Structured Output
+
+Add this to Explorer and Verification prompts:
+
+```json
 {
   "dimension": "1.3",
   "findings": [
-    {"severity": "CRITICAL", "file": "...", "line": N, "issue": "...", "fix": "..."},
-    ...
+    {"severity": "CRITICAL", "file": "...", "line": 1, "issue": "...", "fix": "..."}
   ],
-  "total": {"critical": N, "high": N, "medium": N, "low": N}
+  "total": {"critical": 0, "high": 0, "medium": 0, "low": 0}
 }
 ```
 
-**Savings:** 40-70% output tokens (no prose, no headers, no explanations).
+Structured output cuts narration and makes consolidation cheaper.
 
 ### 4. Per-Agent Token Budgets
+
 | Agent Role | max_tokens |
 |-----------|------------|
 | Explorer | 1000 |
+| Verification | 1200 |
 | Fix Agent | 2000 |
-| Review Agent | 3000 |
-| /simplify Agent | 1000 |
+| Deep Review | 3000-5000 |
+| Cleanup Agent | 1000 |
 
-### 5. Prompt Caching (Anthropic)
-Structure every prompt with STABLE content first, VARIABLE content last:
-```
-[STABLE: System prompt + project context + audit instructions]  <- cached after 1st call
-[VARIABLE: Specific dimension + specific files to scan]          <- unique per agent
+### 5. Stable Prefixes and Reusable Context
+
+Put stable content first, variable content last:
+
+```text
+[stable: project context + audit instructions]
+[variable: dimension checks + files + diff]
 ```
 
-Anthropic caches the stable prefix — subsequent agents pay 90% less for it.
+This makes reuse, caching, and prompt compression easier regardless of provider.
 
 ### 6. Diff-Based Scope for Re-Audits
-After the first full audit, subsequent runs should use `--scope changed`:
+
+After the first full audit, use changed-file scope when appropriate:
+
+```bash
+git diff --name-only main..HEAD
 ```
-/audit-and-fix --scope changed
-```
-This only scans files from `git diff main..HEAD`, reducing agents from 20+ to 3-5.
 
-### 7. Skip Tuning (from Audit Memory)
-After 3+ audits, `tuning.json` recommends skipping zero-finding dimensions.
-A full audit that started with 52 dimensions may run only 35 after tuning.
+Feed changed files to the relevant dimensions first. This usually cuts the number of Explorer agents dramatically.
 
-### 8. Codebase Map Token Savings (Incremental Audits)
+### 7. Skip Tuning from Audit Memory
 
-The biggest token savings come from the codebase map on repeat audits:
+After several audits, `tuning.json` should recommend:
+- zero-finding dimensions to de-prioritize
+- high-yield dimensions to boost
+
+This keeps future runs shorter without losing the important checks.
+
+### 8. Codebase Map Token Savings
+
+The codebase map delivers the biggest savings on repeat audits:
 
 | Audit Type | Without Map | With Map | Savings |
 |-----------|-------------|----------|---------|
-| Full (1st) | 73 dims × all files | Same (no map yet) | 0% |
-| Incremental (2nd+) | 73 dims × all files | Changed files: all dims. Hot-spots: known dims. Clean: skip (+ 10% random) | **60-80%** |
-| Targeted | 73 dims × selected files | Selected files: map-recommended dims first | **30-50%** |
+| First full audit | All dims x all files | Same | 0% |
+| Incremental audit | All dims x all files | Changed files x all dims; hot-spots x matched dims; clean files mostly skipped | 60-80% |
+| Targeted audit | Selected files x broad dims | Selected files x map-recommended dims first | 30-50% |
 
-**How it saves tokens:**
-- Explorer agents get a FOCUSED file list (not "scan everything")
-- Consolidation is instant (map comparison, no agent needed for categorization)
-- Verification agents get historical context (fewer false positives to investigate)
-- Clean files are skipped entirely (except 10% random sample)
+**Why it works:**
+- Explorer agents get a focused file list
+- Verification agents get historical context
+- Clean files are skipped except for a periodic sample
 
-**Token budget with map (incremental audit, 500-file codebase):**
-```
-Changed files (20) × all dims: 20 × 5K = 100K tokens
-Hot-spots (10) × 5 dims each: 10 × 1K = 10K tokens
-Random clean sample (50) × all dims: 50 × 5K = 250K tokens (reduced from 2,500K)
-Fix + Review: unchanged ~250K tokens
+### 9. Batch or Deferred APIs for Non-Interactive Audits
 
-TOTAL: ~610K (vs ~2,900K without map) = **79% savings**
-```
+For scheduled audits where results do not need to be immediate:
+- Prefer your provider's batch/offline API if available
+- Otherwise queue background audits and consolidate later
 
-### 9. Batch API for Background Audits
-For scheduled/non-interactive audits, use Anthropic's Batch API:
-- 50% cost reduction
-- Results within 24h (usually much faster)
-- Ideal for nightly/weekly automated audits
+This is lower priority than routing and scope reduction, but still useful on large codebases.
 
 ## Token Budget Calculator
 
 Estimate before running:
-```
-Full audit:    73 dimensions x ~5K tokens/agent = ~365K tokens
+
+```text
+Full audit:    75 dimensions x ~5K tokens/agent = ~375K tokens
 Quick audit:   14 dimensions x ~5K tokens/agent = ~70K tokens
 Changed-only:  ~5 dimensions x ~5K tokens/agent = ~25K tokens
 
 Fix phases:    4 phases x 4 agents x ~8K tokens/agent = ~128K tokens
 Reviews:       4 x ~15K tokens/review = ~60K tokens
-/simplify:     4 x 3 agents x ~5K tokens/agent = ~60K tokens
+Cleanup:       4 x 3 agents x ~5K tokens/agent = ~60K tokens
 
-TOTAL FULL:    ~613K tokens (~$9.20 at Opus, ~$1.85 at Sonnet, ~$0.30 at Haiku)
-TOTAL OPTIMIZED: ~200K tokens (~$2.00 mixed models)
+TOTAL FULL:    ~623K tokens
+TOTAL OPTIMIZED: often ~200K-250K tokens
 ```
+
+Provider pricing changes over time, so keep the calculator in tokens and apply current pricing separately when needed.

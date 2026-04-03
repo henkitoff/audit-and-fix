@@ -7,7 +7,7 @@ grep -rn "\.write_text(\|\.write_bytes(" python/ --include="*.py" | grep -v "tes
 grep -rn "execute.*INSERT\|execute.*UPDATE\|execute.*DELETE" python/ --include="*.py" | head -15
 grep -rn "datetime.now()" python/ --include="*.py" | head -10
 ```
-**Classify:** CRITICAL if writes model files, state, or signals. HIGH if writes training data. MEDIUM if writes logs or reports.
+**Classify:** CRITICAL if writes model files, state, or queued actions. HIGH if writes training data. MEDIUM if writes logs or reports.
 
 ### Dimension 2.2: Security + Credentials
 **Search for:** Hardcoded secrets, SQL injection, path traversal, exposed endpoints.
@@ -25,13 +25,13 @@ grep -rn "_cache\s*=\s*{}\|_CACHE\s*=" python/ --include="*.py" | head -10
 grep -rn "os.environ\[.*\]\|os.getenv(" python/ --include="*.py" | head -15
 find python/ -name "*.sync-conflict-*" -type f
 ```
-**Classify:** CRITICAL if stale model cache in live trading. HIGH if stale config in 24/5 system. MEDIUM if stale cache in batch jobs.
+**Classify:** CRITICAL if stale model or decision cache affects a live production path. HIGH if stale config affects an always-on system. MEDIUM if stale cache is limited to batch jobs.
 
 ### Dimension 2.4: Import/Dependency Graph
 **Search for:** Circular imports, dependency DAG violations, overly broad import exception handling.
 ```bash
-grep -rn "from strategies\|import strategies" python/common/ --include="*.py"
-grep -rn "from gui\|import gui" python/training/ --include="*.py"
+grep -rn "from .*api\|import .*api" python/ src/ --include="*.py" 2>/dev/null | head -10
+grep -rn "from .*ui\|import .*ui" python/ src/ --include="*.py" 2>/dev/null | head -10
 grep -rn "from .* import \*" python/ --include="*.py" | head -10
 ```
 **Classify:** CRITICAL if circular import causes runtime failure. HIGH if DAG violation. LOW for star imports in re-export stubs.
@@ -39,9 +39,9 @@ grep -rn "from .* import \*" python/ --include="*.py" | head -10
 ### Dimension 2.5: String-Literal Inconsistencies + Magic Numbers
 **Search for:** Inconsistent naming, missing constants, divergent sets.
 ```bash
-grep -rn '"asian"\|"london"\|"ny"\|"overlap"' python/ --include="*.py" | wc -l
-grep -rn '"xgboost"\|"catboost"\|"sklearn"\|"lstm"' python/ --include="*.py" | wc -l
-grep -rn "0\.53\|0\.45\|0\.0001" python/ --include="*.py" | head -15
+grep -rn '"prod"\|"staging"\|"dev"\|"test"' python/ --include="*.py" | wc -l
+grep -rn '"classifier"\|"regressor"\|"embedding"\|"ranking"' python/ --include="*.py" | wc -l
+grep -rn "0\.1\|0\.25\|0\.5\|0\.75" python/ --include="*.py" | head -15
 ```
 **Classify:** HIGH if inconsistent sets (e.g., session names differ between modules). MEDIUM for magic numbers. LOW for consistent string literals.
 
@@ -66,13 +66,13 @@ grep -rn "logging.getLogger(__name__)" python/ --include="*.py" | wc -l
 **Search for:** Critical code paths without any test.
 ```bash
 # List all source files, check which have corresponding test files
-for f in $(find python/strategies/ai/ python/online/ python/common/ -name "*.py" -not -name "__init__.py"); do
+for f in $(find python/ src/ app/ services/ -name "*.py" -not -name "__init__.py" 2>/dev/null); do
   base=$(basename "$f" .py)
   test_count=$(find tests/ -name "test_${base}*" | wc -l)
   [ "$test_count" -eq 0 ] && echo "NO TEST: $f"
 done
 ```
-**Classify:** CRITICAL if signal generation or trade execution has no tests. HIGH if model promotion untested. MEDIUM for utility functions.
+**Classify:** CRITICAL if decision generation, external action execution, or other critical workflows have no tests. HIGH if model rollout is untested. MEDIUM for utility functions.
 
 ### Dimension 2.9: Test Quality & Test Smells
 **Search for:** Empty tests, missing assertions, sleepy tests, exception handling in tests, external dependencies in tests.
