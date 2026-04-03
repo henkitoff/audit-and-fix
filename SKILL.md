@@ -53,7 +53,7 @@ Audit memory (`artifacts/audit-memory/*.json`) syncs automatically via Git - no 
 **Use when:**
 - After major feature additions
 - Multiple unrelated bugs suggest systemic issues
-- Before production deployment of new strategies
+- Before production deployment of high-impact workflows
 - Quarterly codebase health check
 - Post-incident to find related vulnerabilities
 
@@ -102,7 +102,7 @@ Round 4 starts after Rounds 1-3 complete because it depends on their findings. S
 
 ### Consolidation
 
-Produce a single prioritized report (`report-templates.md`): P0 (capital/data, fix this week), P1 (stability, next week), P2 (quality, this month). Group P0+P1 into fix phases with no file overlap.
+Produce a single prioritized report (`report-templates.md`): P0 (critical correctness/data, fix this week), P1 (stability, next week), P2 (quality, this month). Group P0+P1 into fix phases with no file overlap.
 
 ### Verification (2nd-Eye Check)
 
@@ -194,4 +194,4 @@ After all phases pass gates: full test suite -> final deep review -> version bum
 
 ## Real-World Impact
 
-Production Python system (120K LOC): 14 exploration agents, 87 bugs + 5 cascading chains + 8 design flaws found, 22 CRITICAL. 12 fix agents across 4 phases, 3 deep reviews caught 5 additional issues. All 119+ tests green. ~8 hours total.
+Large Python codebase (120K LOC): 14 exploration agents, 87 bugs + 5 cascading chains + 8 design flaws found, 22 CRITICAL. 12 fix agents across 4 phases, 3 deep reviews caught 5 additional issues. All 119+ tests green. ~8 hours total.

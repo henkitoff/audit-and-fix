@@ -22,7 +22,7 @@ ls go.mod 2>/dev/null | head -1
 ```
 If not Python: Skip all Python-specific dimensions (1.7, 5.9-5.12).
 
-## ML/Trading Detection
+## ML / Model Pipeline Detection
 ```bash
 grep -rl "torch\|sklearn\|xgboost\|catboost\|tensorflow\|keras" requirements*.txt pyproject.toml 2>/dev/null
 ```

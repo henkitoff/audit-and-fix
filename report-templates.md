@@ -61,7 +61,7 @@ Use this after all exploration rounds to create the master roadmap.
 - CRITICAL: N, HIGH: N, MEDIUM: N, LOW: N
 - Estimated fix time: P0 = Xh, P1 = Xh, P2 = Xh
 
-## P0 - Immediate (Capital/Data Preservation)
+## P0 - Immediate (Critical Correctness / Data Preservation)
 | # | Finding | File:Line | Fix | Effort |
 |---|---------|-----------|-----|--------|
 | 1 | [description] | `file.py:NN` | [action] | Xmin |

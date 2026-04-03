@@ -2,13 +2,13 @@
 
 A comprehensive, self-improving, runtime-aware codebase audit skill for Claude Code, Claude in VS Code, Codex, and Codex in VS Code.
 
-**75 dimensions** across **7 rounds** - from NaN propagation to OWASP security, from WSL2 clock drift to ML feedback loops.
+**75 dimensions** across **7 rounds** - from NaN propagation to OWASP security, from WSL2 clock drift to ML and automation feedback loops.
 
 ## Features
 
 - **Runtime-Aware Orchestration:** Detects Claude vs Codex and stays on the native toolchain for that host
 - **Capability-Aware Execution:** Defaults to single-agent in Codex and uses delegation only when it is available, policy-allowed, and explicitly requested by the user
-- **7 Exploration Rounds:** Code-Level, System-Level, Domain-Specific (ML/Trading), Architecture, Platform, Security, Token Efficiency
+- **7 Exploration Rounds:** Code-Level, System-Level, Domain-Specific (ML/Stateful Systems), Architecture, Platform, Security, Token Efficiency
 - **75 Dimensions** with concrete grep/find search commands
 - **Parallel Fix Phases** with a native deep review and cleanup pass after each phase
 - **Self-Improving:** Learns from each audit via persistent memory (JSON in Git)
@@ -99,7 +99,7 @@ Do not mix the command sets. Full mapping lives in `runtime-routing.md`.
 | `full` | 1-7 | ~6-8h | Quarterly health check |
 | `security` | Selected from 1+2 | ~1h | Quick security scan |
 | `security-deep` | 6 | ~1-2h | Full OWASP-style audit |
-| `ml` | 3 | ~1h | ML/trading model audit |
+| `ml` | 3 | ~1h | ML / inference pipeline audit |
 | `perf` | Selected | ~1h | Performance hotspots |
 | `platform` | 5 | ~30min | Cross-platform + WSL2 |
 | `token` | 7 | ~30min | LLM API cost audit |

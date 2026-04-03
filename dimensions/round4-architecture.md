@@ -9,21 +9,21 @@ For each CRITICAL finding from Rounds 1-3:
   3. What is the worst-case cascade?
   4. What existing safeguard (if any) catches it?
 ```
-**Classify:** CRITICAL if chain leads to data loss or financial loss. HIGH if chain causes system outage. MEDIUM if chain causes degraded performance.
+**Classify:** CRITICAL if the chain leads to data loss or irreversible user/business impact. HIGH if the chain causes a system outage. MEDIUM if it causes degraded performance.
 
 ### Dimension 4.2: Architecture Design Flaws
 **Search for:** Missing circuit breakers, single points of failure, consensus poisoning.
 ```bash
-grep -rn "can_trade\|halt\|circuit.*break\|pause.*trad" python/ --include="*.py" | head -10
-grep -rn "consensus\|ensemble\|voting" python/strategies/ --include="*.py" | head -15
+grep -rn "halt\|circuit.*break\|pause\|safe_mode\|kill_switch" python/ src/ --include="*.py" 2>/dev/null | head -10
+grep -rn "consensus\|ensemble\|voting" python/ src/ --include="*.py" 2>/dev/null | head -15
 grep -rn "health.*check\|is_alive\|ping" python/ --include="*.py" | head -10
 ```
-**Classify:** CRITICAL if no mechanism to halt trading on critical errors. HIGH if consensus can be poisoned. MEDIUM if no degradation strategy for component failure.
+**Classify:** CRITICAL if there is no mechanism to halt unsafe behavior on critical errors. HIGH if consensus can be poisoned. MEDIUM if there is no degradation strategy for component failure.
 
 ### Dimension 4.3: Fundamentally Wrong Approaches
 **Search for:** File-based IPC, model-as-file, config without hot-reload, missing crash recovery.
 ```bash
-grep -rn "write_signal\|read_signal\|lockfile\|\.lock" python/ --include="*.py" | head -10
+grep -rn "write_.*event\|read_.*event\|enqueue\|dequeue\|lockfile\|\.lock" python/ --include="*.py" | head -10
 grep -rn "shutil.copy\|os.replace\|os.rename" python/ --include="*.py" | head -10
 grep -rn "reload\|hot.*load\|refresh.*config" python/ --include="*.py" | head -5
 ```

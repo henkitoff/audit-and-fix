@@ -16,7 +16,7 @@ grep -rn "\.append(" python/ --include="*.py" | grep -v "test_\|#" | head -20
 grep -rn "^_[A-Z_]*\s*=\s*{}\|^_[a-z_]*\s*=\s*{}" python/ --include="*.py" | head -15
 grep -rn "deque()" python/ --include="*.py" | head -10
 ```
-**Classify:** CRITICAL if in signal loop or 24/5 process. MEDIUM if in batch jobs. LOW if in CLI tools.
+**Classify:** CRITICAL if in an always-on loop or long-lived service. MEDIUM if in batch jobs. LOW if in CLI tools.
 
 ### Dimension 1.3: Thread-Safety / Race Conditions
 **Search for:** Shared mutable state accessed from multiple threads without locks.
@@ -27,18 +27,18 @@ grep -rn "os.environ\[" python/ --include="*.py" | head -10
 # Hanging async tasks (created but never awaited/collected)
 grep -rn "asyncio\.create_task\|loop\.run_in_executor\|Thread(target" python/ --include="*.py" | head -10
 ```
-**Classify:** CRITICAL if shared state in hot path (inference, signal loop). HIGH if in background threads. MEDIUM if in startup-only code.
+**Classify:** CRITICAL if shared state is in a hot path (for example inference or request processing). HIGH if in background threads. MEDIUM if in startup-only code.
 
 ### Dimension 1.4: Numeric Precision / NaN / Float-Accumulation
 **Search for:** Division without zero-guard, NaN propagation, exact float comparisons in money-handling code.
 ```bash
-grep -rn "/ \|/=" python/strategies/ python/backtest/ --include="*.py" | head -20
+grep -rn "/ \|/=" python/ src/ app/ services/ --include="*.py" 2>/dev/null | head -20
 grep -rn "== 0\.0\|!= 0\.0\|== 1\.0" python/ --include="*.py" | head -15
 grep -rn "isnan\|np\.isnan\|math\.isnan" python/ --include="*.py" | wc -l
 # Integer overflow in type conversions
 grep -rn "int(\|np\.uint\|\.astype.*int\|\.astype.*uint" python/ --include="*.py" | head -10
 ```
-**Classify:** CRITICAL if in financial calculations, pricing, or order execution. HIGH if in feature computation. MEDIUM if in logging/display.
+**Classify:** CRITICAL if in money calculations, quota/limit enforcement, or other externally visible decisions. HIGH if in feature computation. MEDIUM if in logging/display.
 
 ### Dimension 1.5: Silent Error Swallowing
 **Search for:** Exception handlers that hide errors (pass, return None, continue) without logging.
@@ -47,7 +47,7 @@ grep -rn "except.*:" python/ --include="*.py" -A1 | grep -B1 "pass$" | head -20
 grep -rn "except.*:" python/ --include="*.py" -A1 | grep -B1 "continue$" | head -15
 grep -rn "except.*:" python/ --include="*.py" -A2 | grep -B2 "return None" | head -15
 ```
-**Classify:** CRITICAL if silences DB write, trade execution, or signal delivery. HIGH if in data pipeline. MEDIUM if in optional features.
+**Classify:** CRITICAL if silences DB writes, job dispatch, or critical notification delivery. HIGH if in data pipeline. MEDIUM if in optional features.
 
 ### Dimension 1.6: Resource Leaks
 **Search for:** Unclosed database connections, file handles, subprocess handles.
