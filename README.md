@@ -1,38 +1,83 @@
 # audit-and-fix
 
-A comprehensive, self-improving codebase audit skill for Claude Code (Superpowers).
+A comprehensive, self-improving, runtime-aware codebase audit skill for Claude Code, Claude in VS Code, Codex, and Codex in VS Code.
 
-**75 dimensions** across **7 rounds** -- from NaN propagation to OWASP security, from WSL2 clock drift to ML feedback loops.
+**75 dimensions** across **7 rounds** - from NaN propagation to OWASP security, from WSL2 clock drift to ML feedback loops.
 
 ## Features
 
+- **Runtime-Aware Orchestration:** Detects Claude vs Codex and stays on the native toolchain for that host
+- **Capability-Aware Execution:** Defaults to single-agent in Codex and uses delegation only when it is available, policy-allowed, and explicitly requested by the user
 - **7 Exploration Rounds:** Code-Level, System-Level, Domain-Specific (ML/Trading), Architecture, Platform, Security, Token Efficiency
 - **75 Dimensions** with concrete grep/find search commands
-- **Parallel Fix Phases** with Opus reviews and adaptive /simplify after each phase
+- **Parallel Fix Phases** with a native deep review and cleanup pass after each phase
 - **Self-Improving:** Learns from each audit via persistent memory (JSON in Git)
 - **8 Presets:** quick, full, security, security-deep, ml, perf, platform, token
 - **Cross-Machine:** Audit memory syncs via Git across Mac/Windows/Linux
-- **Model Routing:** Sonnet for 80% of agents (speed), Opus only for reviews (quality)
+- **Provider-Native Routing:** Claude path uses Claude-native review models; Codex path stays OpenAI/Codex-only
 - **5 Parallelization Strategies:** Cut audit time from ~6-8h to ~3h
-- **Token-Efficient by Default:** Filtered codebase-map injection (saves ~10-16K tokens/run), adaptive /simplify dispatch, sub-agent templates for large dimensions, verification category split
+- **Token-Efficient by Default:** Filtered codebase-map injection, adaptive cleanup dispatch, sub-agent templates for large dimensions, verification category split
 
 ## Installation
 
-### Claude Code (Superpowers)
+### Installer scripts
+
 ```bash
-# Clone this repo (or copy the skill directory)
+# Mac/Linux
+bash scripts/install_skill.sh auto
+
+# Windows PowerShell
+powershell -File scripts\install_skill.ps1 -Target auto
+```
+
+`auto` installs to both supported hosts:
+- `~/.claude/skills/audit-and-fix/`
+- `${CODEX_HOME:-~/.codex}/skills/audit-and-fix/`
+
+Use `claude`, `codex`, or `both` if you want a narrower target.
+
+### Manual install: Claude Code / Claude in VS Code
+
+```bash
 mkdir -p ~/.claude/skills/
 cp -r audit-and-fix ~/.claude/skills/
-
-# Or use the install script from a project that includes this skill:
-bash scripts/install_skill.sh
 ```
 
-### Quick Start
+### Manual install: Codex / Codex in VS Code
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills/"
+cp -r audit-and-fix "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
+
+Codex/OpenAI metadata lives in `agents/openai.yaml`.
+
+## Quick Start
+
+### Claude path
+
+```text
 /audit-and-fix --preset quick
 ```
-Runs Round 1 (Code) + Round 4 (Architecture) -- ~2 hours, 14 dimensions.
+
+### Codex path
+
+```text
+Use $audit-and-fix to run the quick preset on this repository.
+```
+
+Quick preset runs Round 1 (Code) + Round 4 (Architecture) - about 2 hours, 14 dimensions.
+
+**Invocation note:** In Codex, use `$audit-and-fix`. `/audit-and-fix` is a Claude-style slash invocation and is not registered as a native Codex slash command by this skill format.
+
+## Runtime Routing
+
+Before dispatching work, detect the host and current capabilities:
+
+- **Claude host:** use `Agent(...)`, `run_in_background`, Claude-native review flow, and `/simplify` if available
+- **Codex host:** use OpenAI/Codex models only, default to single-agent execution, and use `spawn_agent`/`wait_agent` only when delegated execution is available, policy-allowed, and explicitly requested by the user
+
+Do not mix the command sets. Full mapping lives in `runtime-routing.md`.
 
 ## Rounds & Dimensions
 
@@ -62,20 +107,21 @@ Runs Round 1 (Code) + Round 4 (Architecture) -- ~2 hours, 14 dimensions.
 ## Self-Improving Audit Memory
 
 The skill learns from each audit:
-- `artifacts/audit-memory/history.json` -- Append-only audit history
-- `artifacts/audit-memory/tuning.json` -- Auto-skip zero-finding dimensions
-- `artifacts/audit-memory/regression-watch.json` -- Watch for re-introduced bugs
-- `artifacts/audit-memory/false-positives.json` -- Don't re-report confirmed non-bugs
+- `artifacts/audit-memory/history.json` - Append-only audit history
+- `artifacts/audit-memory/tuning.json` - Auto-skip recommendations for zero-finding dimensions
+- `artifacts/audit-memory/regression-watch.json` - Watch for re-introduced bugs
+- `artifacts/audit-memory/false-positives.json` - Do not re-report confirmed non-bugs
 
-All Git-tracked -- syncs across machines automatically.
+All Git-tracked - syncs across machines automatically.
 
 ## File Structure
 
-```
+```text
 audit-and-fix/
-├── SKILL.md                    Main orchestration
-├── README.md                   This file
-├── exploration-dimensions.md   Index -> 7 round files
+├── SKILL.md
+├── README.md
+├── runtime-routing.md
+├── exploration-dimensions.md
 ├── dimensions/
 │   ├── round1-code-level.md
 │   ├── round2-system-level.md
@@ -84,47 +130,34 @@ audit-and-fix/
 │   ├── round5-platform.md
 │   ├── round6-security.md
 │   └── round7-token-efficiency.md
-├── gate-pattern.md             7-step fix phase gate
-├── report-templates.md         3 report templates
-├── progress-template.md        Live dashboard
-├── agent-prompts.md            Copy-paste agent prompts + model routing
-├── auto-detect.md              Skip irrelevant dimensions
-├── custom-dimensions-template.md  Add project-specific dimensions
-├── audit-memory.md             Persistent learning system
-├── learning-agents.md          Post-audit analysis agents
-├── skill-improvement.md        Self-improvement proposals
-├── reference.md                Parallelization, benchmarks, tuning
-└── token-optimization-guide.md Token cost reduction strategies
+├── gate-pattern.md
+├── report-templates.md
+├── progress-template.md
+├── agent-prompts.md
+├── auto-detect.md
+├── audit-memory.md
+├── learning-agents.md
+├── skill-improvement.md
+├── reference.md
+├── token-optimization-guide.md
+├── agents/
+│   └── openai.yaml
+└── scripts/
+    ├── install_skill.ps1
+    └── install_skill.sh
 ```
-
-## Real-World Results
-
-Tested on a large production Python system:
-
-- Exploration phase: 14 agents surfaced **80+ bugs, cascading failure chains, and architectural flaws**
-- 20+ CRITICAL findings including silent data corruption, stale cache poisoning, and missing circuit-breakers
-- Fix phase: parallel agents across multiple rounds with Opus reviews after each
-- God-modules (>1500 LOC) dissolved into focused sub-modules (<600 LOC each), cyclic dependencies broken, duplicate code paths unified
-- All fixes merged, **250+ tests green**, 0 regressions
-- **Health Score: 47/100 → 91/100**
 
 ## What's New
 
-**v4.3** — Token Waste Fixes
-- `agent-prompts.md`: Codebase-map injection now filtered per agent (dimension match / git diff / risk score) — saves ~10-16K tokens per mega-parallel run
-- `agent-prompts.md`: Sub-agent dispatch template for large dimensions (>15 checks) — split by technology, each agent gets ONE slice
-- `gate-pattern.md`: Adaptive /simplify — 1 agent for small phases (≤2 files), 2 for medium, 3 for large; each agent gets a different file slice
-- `SKILL.md`: Verification agents split by dimension category (Code+System vs Domain+Arch+Platform+Security)
-
-**v4.2** — Token Efficiency Round expanded to 12 dimensions
-- New: Dim 7.11 (Prompt Compression & Tokenization), Dim 7.12 (Streaming vs. Blocking)
-- Improved: Dims 7.2, 7.3, 7.6, 7.7, 7.10 with concrete budgets and Batch API guidance
-
-**v4.1** — Initial public release (74 dimensions)
+**v4.4** - Runtime-Aware Claude/Codex Support
+- Added `runtime-routing.md` to separate Claude-native and Codex/OpenAI-native execution paths
+- Added `agents/openai.yaml` so Codex/OpenAI surfaces the skill cleanly
+- Added cross-host install scripts for Claude and Codex skill directories
+- Reworked prompts, gate pattern, and token guidance to stay provider-native instead of hard-coding Claude-only assumptions
 
 ## Requirements
 
-- **Claude Code** with Superpowers plugin
+- **Claude Code / Claude in VS Code** or **Codex / Codex in VS Code**
 - Python codebase (dimensions are Python-focused, but architecture/security rounds are language-agnostic)
 - Git (for audit memory persistence)
 

@@ -1,116 +1,126 @@
 # Fix Phase Gate Pattern
 
-Every fix phase follows this exact 7-step sequence. Do NOT skip steps. Do NOT reorder.
+Every fix phase follows this exact 7-step sequence. Do not skip steps. Do not reorder.
 
 ## Step 1: PLAN
 
 Before dispatching agents, verify:
-- Each agent has an explicit file list (no overlaps with other agents in this phase)
-- Each agent has exact changes described (not "fix the bugs")
-- Each agent has a test command to run after changes
+- Each agent has an explicit file list
 - No two agents touch the same file
-- Check cross-phase dependencies: can this phase run parallel with others? (see `reference.md` "Fix Phase Dependency Graph")
+- Each agent has exact changes described
+- Each agent has a test command
+- Cross-phase dependencies are understood (see `reference.md`)
 
-**Fix Ordering Within Priority Level:**
-Sort findings within each priority by this formula:
-1. **Cascade score** (×3): Does this bug enable other bugs? (check Round 4 cascading chains)
-2. **Fix time** (×2, inverse): 5-minute fixes before 2-hour fixes (quick wins first)
-3. **Test exists** (×1): Bugs with existing test coverage first (verifiable fix)
-4. **File isolated** (×1): Bugs in files no other fix touches first (no merge risk)
+**Fix ordering within a priority level:**
+1. Cascade score (bugs that enable other bugs first)
+2. Fix time (quick wins first)
+3. Existing test coverage
+4. File isolation
 
-Example: NaN-guard in data_writer.py scores HIGH (cascade: enables downstream errors, fix: 5min, test: yes, isolated: yes) = 3+2+1+1 = 7. Thread-lock in inference.py scores MEDIUM (cascade: no, fix: 30min, test: no, isolated: no) = 0+1+0+0 = 1.
-
-**Codebase Map Awareness (if map exists):**
-- Check `risk_score` for each file in the fix scope. Files with risk >= 7 need extra review after fix.
-- If a fix touches a file with historical findings in OTHER dimensions, add a quick regression check.
-- Flag to Opus reviewer: "This file has had [N] historical bugs — verify fix doesn't introduce regressions."
+**Codebase map awareness (if map exists):**
+- Files with `risk_score >= 7` need extra scrutiny after the fix
+- If a file has historical findings in other dimensions, add a quick regression check
+- Tell the reviewer: "This file has had [N] historical bugs - verify the fix does not introduce regressions."
 
 ## Step 2: EXECUTE
 
-Launch N agents in parallel:
-- `subagent_type: general-purpose`
-- `isolation: worktree` (ALWAYS — never edit main directly)
-- Max 4 parallel agents per phase
-- Each agent must: read file first, apply fix, run tests, commit with Co-Authored-By
+Execute fixes using the current host's native execution path:
 
-## Step 3: MERGE
+- **Claude path:** worktrees, one agent per disjoint file set, usually Sonnet
+- **Codex default path:** fix in the main thread
+- **Codex delegated fast-path:** optional `worker` agents with explicit file ownership, no overlapping files, and no reverts of other agents' work
 
-After all agents complete:
+Each fix agent must:
+- Read files before editing
+- Apply minimal, targeted fixes
+- Run the assigned tests
+- Report changed files and validation results
+
+## Step 3: INTEGRATE
+
+Integrate all completed fix work before review.
+
+**Claude path:** merge worktree branches.
+
 ```bash
 cd /path/to/repo
 git merge worktree-agent-XXXXX --no-edit
-# Repeat for each agent branch
 ```
-If conflicts: prefer newer changes. If unclear, read both versions and merge manually.
+
+**Codex single-agent path:** no integration step is needed beyond your own edits in the main thread.
+
+**Codex delegated path:** review each worker's returned changes and integrate them into the main workspace in dependency order. If two workers touched overlapping code, stop and resolve manually instead of forcing the merge.
 
 ## Step 4: TEST
 
 Run the test suite relevant to this phase:
+
 ```bash
 python -m pytest tests/ -x -q -p no:faulthandler
 ```
-ALL tests must pass before proceeding. If failures:
-- Check if failure is pre-existing (existed before this phase)
-- If new failure: fix immediately before review
 
-## Step 5: OPUS REVIEW (must complete before /simplify — unless 0 CRITICAL)
+All tests must pass before proceeding. If failures appear:
+- Check whether they were pre-existing
+- Fix new failures before review
 
-Launch Opus code-review agent:
-```
-subagent_type: superpowers:code-reviewer
-```
+## Step 5: NATIVE DEEP REVIEW (must complete before cleanup unless 0 CRITICAL)
+
+Launch a native deep-review agent:
+
+- **Claude path:** Opus / native code-reviewer
+- **Codex path:** top-tier OpenAI/Codex review agent, or the main thread if no separate reviewer is available
+
 Provide:
-- The git diff range for this phase
-- Phase-specific focus areas (e.g., "lock ordering" for thread-safety phase)
-- Max finding count (10-15 per review)
+- The diff range for this phase
+- Phase-specific focus areas
+- Max finding count (10-15)
 
-Rate findings: CRITICAL (must fix now) / WARNING (should fix) / INFO (nice to have).
-Fix ALL CRITICAL findings immediately.
-If CRITICAL findings exist: fix them, THEN proceed to Step 6.
-If 0 CRITICAL findings: proceed to Step 6 immediately. Additionally, /simplify (Step 6) and the NEXT fix phase can overlap — see `reference.md` Strategy 2 for details.
+Rate findings as:
+- `CRITICAL` - must fix now
+- `WARNING` - should fix
+- `INFO` - nice to have
 
-## Step 6: /SIMPLIFY (runs on post-fix code)
+Fix all `CRITICAL` findings immediately.
 
-**Adaptive dispatch — scale agents to phase size:**
+If 0 `CRITICAL` findings remain, proceed to Step 6. At that point the cleanup pass and the next independent phase may overlap. See `reference.md`.
+
+## Step 6: CLEANUP PASS
+
+Run the host-native cleanup equivalent after deep-review findings are fixed.
+
+**Adaptive dispatch:**
 
 | Phase file count | Agents to launch | Assignment |
 |-----------------|-----------------|------------|
-| ≤ 2 files | 1 agent | All 3 checks combined into one prompt |
-| 3–6 files | 2 agents | Agent 1: Reuse + Quality · Agent 2: Efficiency (give different file sets) |
-| 7+ files | 3 agents | Full parallel split (see below) |
+| <= 2 files | 1 agent | Reuse + quality + efficiency in one prompt |
+| 3-6 files | 2 agents | Split file sets; combine the three checks across two agents |
+| 7+ files | 3 agents | Full split: reuse, quality, efficiency |
 
-**Full 3-agent split (large phases only):**
+If delegated cleanup is in use, give each cleanup agent a different subset of changed files. In single-agent mode, process the same checks sequentially in the main thread.
 
-Give each agent a DIFFERENT subset of the changed files — no overlap.
-Split the file list roughly by thirds (e.g. 9 files → 3 per agent).
+**Git diff tip:** pass `git diff --unified=1` for changed files when full file content would be too large.
 
-1. **Code Reuse** — duplicated utilities, existing helpers not used
-2. **Code Quality** — redundant state, copy-paste, unnecessary comments
-3. **Efficiency** — hot-path bloat, lock contention, unnecessary work
+Fix substantive findings only:
+- Could cause a bug
+- Could degrade performance measurably
+- Could confuse a future maintainer
 
-**Git diff tip:** Pass `git diff --unified=1 HEAD~1` rather than full files when file contents are large — this shows only changed context and cuts token cost ~60–80%.
-
-These review the code AFTER Opus findings are fixed — ensuring they don't waste time on code that's about to change.
-
-Fix substantive findings — a finding is substantive if it could cause a bug, degrade performance measurably, or confuse a future maintainer. Skip style-only or theoretical findings (note them, don't argue).
+Skip style-only or purely theoretical findings.
 
 ## Step 7: NEXT PHASE
 
-If more fix phases remain: proceed to next phase.
-If this was the last phase: version bump + push.
+If more phases remain: move to the next phase.
+If this was the last phase: version bump and push.
 
 ```bash
-# Version bump (last phase only — adapt to your project's versioning script):
-# python scripts/bump_version.py minor --summary "VX.Y — [description]"
-# OR manually update version files, then:
-git commit -m "feat: VX.Y — [description]"
+git commit -m "feat: VX.Y - [description]"
 git push origin main
 ```
 
-## Gate Checklist (copy per phase)
+## Gate Checklist
 
-- [ ] All agents completed and merged
-- [ ] Tests green (or pre-existing failures documented)
-- [ ] Opus review: 0 CRITICAL remaining
-- [ ] /simplify: substantive findings fixed
-- [ ] Ready for next phase
+- [ ] All fix work completed and was integrated if delegation was used
+- [ ] Tests are green (or pre-existing failures documented)
+- [ ] Native deep review reports 0 CRITICAL remaining
+- [ ] Cleanup-pass substantive findings are fixed
+- [ ] Ready for the next phase

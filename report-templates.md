@@ -61,32 +61,32 @@ Use this after all exploration rounds to create the master roadmap.
 - CRITICAL: N, HIGH: N, MEDIUM: N, LOW: N
 - Estimated fix time: P0 = Xh, P1 = Xh, P2 = Xh
 
-## P0 — Immediate (Capital/Data Preservation)
+## P0 - Immediate (Capital/Data Preservation)
 | # | Finding | File:Line | Fix | Effort |
 |---|---------|-----------|-----|--------|
 | 1 | [description] | `file.py:NN` | [action] | Xmin |
 
-## P1 — Short-term (Stability)
+## P1 - Short-term (Stability)
 | # | Finding | File:Line | Fix | Effort |
 |---|---------|-----------|-----|--------|
 
-## P2 — Medium-term (Quality)
+## P2 - Medium-term (Quality)
 | # | Finding | File:Line | Fix | Effort |
 |---|---------|-----------|-----|--------|
 
 ## Fix Phases
 
-### Phase A: [scope] — N parallel agents
+### Phase A: [scope] - N parallel agents
 | Agent | Files | Task |
 |-------|-------|------|
 | A1 | `file1.py`, `file2.py` | [description] |
 | A2 | `file3.py`, `file4.py` | [description] |
 **File-Overlap:** NONE
 
-### Phase B: [scope] — N parallel agents
+### Phase B: [scope] - N parallel agents
 (same format)
 
-### Phase C: [scope] — N parallel agents
+### Phase C: [scope] - N parallel agents
 (same format)
 
 ### Phase D: Cleanup + Version Bump
@@ -97,12 +97,12 @@ Use this after all exploration rounds to create the master roadmap.
 
 ## 3. Gate Review Report
 
-Use this for the Opus code-review agent output after each fix phase.
+Use this for the native deep-review output after each fix phase.
 
 ```markdown
 # Gate [A/B/C/D] Review
 
-**Phase:** [description] | **Reviewer:** Opus
+**Phase:** [description] | **Reviewer:** [Claude reviewer / Codex reviewer / native host reviewer]
 **Diff Range:** `COMMIT_A..COMMIT_B`
 **Verdict:** PASS / PASS WITH FIXES / FAIL
 

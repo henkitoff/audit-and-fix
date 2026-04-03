@@ -1,0 +1,7 @@
+interface:
+  display_name: "Audit and Fix"
+  short_description: "Runtime-aware codebase audits"
+  default_prompt: "Use $audit-and-fix to run the quick or full audit on this repository; in Codex, use $audit-and-fix rather than /audit-and-fix, and default to single-agent execution unless I explicitly request delegated or parallel agent work."
+
+policy:
+  allow_implicit_invocation: true
